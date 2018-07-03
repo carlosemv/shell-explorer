@@ -51,10 +51,12 @@ class CommandLine(ShellInput):
 		pass
 
 class TerminalScreen(BoxLayout):
-	def __init__(self, **kwargs):
+	def __init__(self, app, **kwargs):
 		kwargs['orientation'] = 'vertical'
 		super(TerminalScreen, self).__init__(**kwargs)
 
+		self.app = app
+		
 		self.line_height = 35
 		self.history = History(line_height=self.line_height)
 		self.history_pointer = -1

@@ -8,20 +8,26 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.image import Image
 from kivy.graphics import Color, Rectangle
+from shell import Shell
+from os.path import join
 
 class FileDir(DragBehavior, BoxLayout):
-    def __init__(self, text="", **kwargs):
+    def __init__(self, text="", is_dir=False, **kwargs):
         kwargs['orientation'] = 'vertical'
         super(FileDir, self).__init__(**kwargs)
         self.size_hint = (None, None)
         self.size = (100, 100)
+
+        self.is_dir = is_dir
+        self.register_event_type('on_drop')
 
         with self.canvas:
             Color(1, 0, 0, 0)
             self.rect = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_rect, size=self.update_rect)
 
-        self.image = Image(source="resources/dir.png", mipmap=True)
+        img_src = "dir.png" if self.is_dir else "file.png"
+        self.image = Image(source="resources/"+img_src, mipmap=True)
         self.name = Label(text=text)
 
         self.add_widget(self.image)
@@ -81,35 +87,53 @@ class FileDir(DragBehavior, BoxLayout):
             for child in self.stackp.children:
                 if child.collide_point(*touch_pos):
                     print("collide with", child.name.text)
+                    if child.is_dir:
+                        self.dispatch('on_drop', child)
         self.plane.remove_widget(self)
         self.stackp.add_widget(self, index=self.original_idx)
 
+    def on_drop(src, dst):
+        pass
+
 class Explorer(ScrollView):
-    def __init__(self, **kwargs):
+    def __init__(self, app, **kwargs):
         scroll_params = {'do_scroll_x':False, 'bar_width':8,
             'bar_margin':2, 'scroll_type':['bars']}
         kwargs.update(scroll_params)
         super(Explorer, self).__init__(**kwargs)
 
-        stack = StackLayout(padding=30, spacing=30)
-        stack.size_hint_y = None
-        stack.bind(minimum_height=stack.setter('height'))
+        self.app = app
+        self.app.bind(path=self.update)
+
+        self.stack = StackLayout(padding=30, spacing=30)
+        self.stack.size_hint_y = None
+        self.stack.bind(minimum_height=self.stack.setter('height'))
 
         floating = FloatLayout()
         floating.size_hint_y = None
-        stack.bind(height=floating.setter('height'))
-        floating.add_widget(stack)
+        self.stack.bind(height=floating.setter('height'))
+        floating.add_widget(self.stack)
 
         self.add_widget(floating)
+        self.update(self.app, self.app.path)
 
-        for i in range(18):
-            d = FileDir(text="file "+str(i))
-            stack.add_widget(d)
+    def move(self, src, dst):
+        src, dst = src.name.text, dst.name.text
+        print("dropped", src, "on", dst)
+        # self.app.path = join(self.app.path, dst)
+
+    def update(self, app, new_path):
+        for file, is_dir in Shell.list_dir(new_path).items():
+            if file[0] != '.':            
+                f = FileDir(text=file, is_dir=is_dir)
+                f.bind(on_drop=self.move)
+                self.stack.add_widget(f)
 
 class ExplorerScreen(BoxLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, app, **kwargs):
         kwargs['orientation'] = 'vertical'
         super(ExplorerScreen, self).__init__(**kwargs)
 
-        self.explorer = Explorer()
+        self.app = app
+        self.explorer = Explorer(app=app)
         self.add_widget(self.explorer)

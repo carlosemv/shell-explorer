@@ -12,23 +12,28 @@ from shell import Shell
 from os.path import join
 
 class FileDir(DragBehavior, BoxLayout):
-    def __init__(self, text="", is_dir=False, **kwargs):
+    def __init__(self, text="", is_dir=False, is_phantom=False, **kwargs):
         kwargs['orientation'] = 'vertical'
+        if is_phantom:
+            kwargs['opacity'] = 0.5
+            text = "boo"
         super(FileDir, self).__init__(**kwargs)
         self.size_hint = (None, None)
         self.size = (100, 100)
 
         self.is_dir = is_dir
         self.register_event_type('on_drop')
+        self.register_event_type('on_enter')
 
         with self.canvas:
-            Color(1, 0, 0, 0)
+            self.rect_color = Color(1, 0, 0, 0)
             self.rect = Rectangle(pos=self.pos, size=self.size)
         self.bind(pos=self.update_rect, size=self.update_rect)
 
         img_src = "dir.png" if self.is_dir else "file.png"
         self.image = Image(source="resources/"+img_src, mipmap=True)
-        self.name = Label(text=text)
+        self.name = Label(text=text, halign='center',
+            shorten=True, text_size=(self.width, None))
 
         self.add_widget(self.image)
         self.add_widget(self.name)
@@ -41,6 +46,7 @@ class FileDir(DragBehavior, BoxLayout):
         self.plane = None
 
         self.phantom = None
+        self.is_phantom = is_phantom
 
     def update_drag(self, *args):
         self.drag_rectangle = (*self.pos, *self.size)
@@ -51,61 +57,85 @@ class FileDir(DragBehavior, BoxLayout):
 
     # put down
     def on_touch_up(self, touch):
-        if self.collide_point(*touch.pos) and self.phantom:
-            print("put down", self.name.text)
-            self.release(True, touch.pos)
+        if self.is_phantom:
+            return True
+
+        if self.collide_point(*touch.pos):
+            # check if still has phantom to protect
+            # against doubled on_touch_up events
+            if self.phantom and not touch.is_double_tap:
+                self.release(True, touch.pos)
         return super(FileDir, self).on_touch_up(touch)
 
     # pick up
     def on_touch_down(self, touch):
-        if self.collide_point(touch.x, touch.y) and \
-                isinstance(self.parent, StackLayout):
-            self.stackp = self.parent
-            self.plane = self.stackp.parent
+        if not self.collide_point(*touch.pos) or \
+                not isinstance(self.parent, StackLayout):
+            return super(FileDir, self).on_touch_down(touch)
+        
+        if self.is_phantom:
+            return True
 
-            # deal with bug where label is picked up 
-            # but not dragged, leaving it floating
-            if len(self.plane.children) > 1:
-                floaters = (w for w in self.plane.children if 
-                    isinstance(w, FileDir))
-                for f in floaters:
-                    f.release()
+        if touch.is_double_tap:
+            if self.is_dir:
+                self.dispatch('on_enter')
+            # else try open
+            return True
 
-            self.original_idx = self.stackp.children.index(self)
-            self.phantom = FileDir(text="boo", opacity=0.5)
+        self.stackp = self.parent
+        self.plane = self.stackp.parent
 
-            print("picked up", self.name.text)
-            self.stackp.remove_widget(self)
-            self.plane.add_widget(self)
-            self.stackp.add_widget(self.phantom, index=self.original_idx)
+        # deal with bug where object is picked up 
+        # but not dragged, leaving it floating
+        if len(self.plane.children) > 1:
+            floaters = (w for w in self.plane.children if 
+                isinstance(w, FileDir))
+            for f in floaters:
+                f.release()
+
+        self.original_idx = self.stackp.children.index(self)
+        self.phantom = FileDir(is_phantom=True)
+
+        self.stackp.remove_widget(self)
+        self.plane.add_widget(self)
+        self.stackp.add_widget(self.phantom, index=self.original_idx)
+
         return super(FileDir, self).on_touch_down(touch)
 
     def release(self, check_collision=False, touch_pos=None):
         self.stackp.remove_widget(self.phantom)
         self.phantom = None
+
+        moved = False
         if check_collision:
             for child in self.stackp.children:
                 if child.collide_point(*touch_pos):
-                    print("collide with", child.name.text)
                     if child.is_dir:
                         self.dispatch('on_drop', child)
+                        moved = True
+
         self.plane.remove_widget(self)
-        self.stackp.add_widget(self, index=self.original_idx)
+        if not moved:
+            self.stackp.add_widget(self, index=self.original_idx)
 
     def on_drop(src, dst):
         pass
 
-class Explorer(ScrollView):
+    def on_enter(tgt):
+        pass
+
+class Explorer(BoxLayout):
     def __init__(self, app, **kwargs):
-        scroll_params = {'do_scroll_x':False, 'bar_width':8,
-            'bar_margin':2, 'scroll_type':['bars']}
-        kwargs.update(scroll_params)
+        kwargs['orientation'] = 'vertical'
         super(Explorer, self).__init__(**kwargs)
 
         self.app = app
         self.app.bind(path=self.update)
 
-        self.stack = StackLayout(padding=30, spacing=30)
+        self.scroll = ScrollView(do_scroll_x=False, bar_width=8,
+            bar_margin=2, scroll_type=['bars'])
+
+        self.stack = StackLayout(padding=30, spacing=25)
         self.stack.size_hint_y = None
         self.stack.bind(minimum_height=self.stack.setter('height'))
 
@@ -114,19 +144,53 @@ class Explorer(ScrollView):
         self.stack.bind(height=floating.setter('height'))
         floating.add_widget(self.stack)
 
-        self.add_widget(floating)
-        self.update(self.app, self.app.path)
+        self.scroll.add_widget(floating)
+
+        self.nav_bar = BoxLayout(orientation='horizontal',
+            size_hint_y=0.05)
+
+        self.add_widget(self.nav_bar)
+        self.add_widget(self.scroll)
+        self.update()
 
     def move(self, src, dst):
-        src, dst = src.name.text, dst.name.text
-        print("dropped", src, "on", dst)
-        # self.app.path = join(self.app.path, dst)
+        with dst.canvas:
+            dst.rect_color = Color(0, 0, 0, 1)
 
-    def update(self, app, new_path):
+        src, dst = src.name.text, dst.name.text
+        print("move", src, "to", dst)
+        self.update()
+
+    def enter(self, tgt):
+        tgt = tgt.name.text
+        self.app.path = join(self.app.path, tgt)
+
+    def navigate(self, button):
+        path = ""
+        for btn in self.nav_bar.children[::-1]:
+            path = join(path, btn.text)
+            if btn == button:
+                break
+        self.app.path = path
+
+
+    def update(self, app=None, new_path=None):
+        if not new_path:
+            new_path = self.app.path
+
+        self.nav_bar.clear_widgets()
+        for directory in ['/']+new_path.split('/'):
+            if directory:
+                btn = Button(text=directory)
+                btn.bind(on_press=self.navigate)
+                self.nav_bar.add_widget(btn)
+
+        self.stack.clear_widgets()
         for file, is_dir in Shell.list_dir(new_path).items():
             if file[0] != '.':            
                 f = FileDir(text=file, is_dir=is_dir)
                 f.bind(on_drop=self.move)
+                f.bind(on_enter=self.enter)
                 self.stack.add_widget(f)
 
 class ExplorerScreen(BoxLayout):

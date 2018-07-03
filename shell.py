@@ -1,38 +1,11 @@
 import os
 import shutil
 import subprocess as sp
-from os.path import join
+from os.path import isfile, join
 from shell_code import ShellLexer, split_list
 from pygments.token import Token, Name
 
 path = "/home/victoragnez/"
-
-def run(args):
-	sp.run(args, cwd=path, timeout = 3)
-
-def touch(name):
-	f = open(join(path, name),"w+")
-	f.close()
-
-def remove(name):
-	try:
-		os.remove(join(path,name))
-	except FileNotFoundError:
-		pass
-	except IsADirectoryError:
-		pass
-
-def rmdir(name):
-	try:
-		os.rmdir(join(path,name))
-	except FileNotFoundError:
-		pass
-
-def rmtree(name):
-	try:
-		shutil.rmtree(join(path,name))
-	except FileNotFoundError:
-		pass
 
 class Shell():
 	
@@ -60,4 +33,34 @@ class Shell():
 				run(args)
 		else:
 			run(args)
-			
+
+	def run(args):
+		sp.run(args, cwd=path, timeout = 3)
+
+	def touch(name):
+		f = open(join(path, name),"w+")
+		f.close()
+
+	def remove(name):
+		try:
+			os.remove(join(path,name))
+		except FileNotFoundError:
+			pass
+		except IsADirectoryError:
+			pass
+
+	def rmdir(name):
+		try:
+			os.rmdir(join(path,name))
+		except FileNotFoundError:
+			pass
+
+	def rmtree(name):
+		try:
+			shutil.rmtree(join(path,name))
+		except FileNotFoundError:
+			pass
+
+	def list_dir(path):
+		contents = os.listdir(path)
+		return {file : not isfile(join(path, file)) for file in contents}

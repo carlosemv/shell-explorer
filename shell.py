@@ -62,19 +62,14 @@ class Shell(EventDispatcher):
 						bad = True
 						break
 				if not bad:
-					prev_path = self.path
-					try:
-						self.path = normpath(join(self.path, arg))
-					except FileNotFoundError:
-						self.path = prev_path
-					except NotADirectoryError:
-						self.path = prev_path
+					self.cd(arg)
 				else:
 					self.run(instance.text.split())
 			else:
 				self.run(instance.text.split())
 		else:
 			self.run(instance.text.split())
+		self.dispath('on_update')
 	
 	def list_dir(path):
 		contents = os.listdir(path)
@@ -152,4 +147,13 @@ class Shell(EventDispatcher):
 			pass
 		except FileExistsError:
 			pass
+	
+	def cd(self, arg):
+		prev_path = self.path
+		try:
+			self.path = normpath(join(self.path, arg))
+		except FileNotFoundError:
+			self.path = prev_path
+		except NotADirectoryError:
+			self.path = prev_path
 

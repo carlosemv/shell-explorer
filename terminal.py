@@ -88,12 +88,10 @@ class TerminalScreen(BoxLayout):
 		if up:
 			if self.history_pointer == -1:
 				self.latest_input = instance.text
+
 			if self.history_pointer < len(self.history.children) - 1:
 				self.history_pointer += 1
-			try:
 				instance.text = self.history.children[self.history_pointer].text
-			except IndexError:
-				instance.text = ""
 		else:
 			if self.history_pointer > 0:
 				self.history_pointer -= 1

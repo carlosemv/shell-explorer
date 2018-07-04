@@ -73,7 +73,7 @@ class Shell(EventDispatcher):
 			elif n_args == 2 and is_path[1]:
 				r = self.rm(args[1]['value'])
 			else:
-				return False
+				return None
 		elif cmd == 'rmdir' and n_args == 2 and is_path[1]:
 			r = self.rmdir(args[1]['value'])
 		elif cmd == 'mkdir' and n_args == 2 and is_path[1]:
@@ -85,7 +85,7 @@ class Shell(EventDispatcher):
 			elif n_args == 3 and is_path[1] and is_path[2]:
 				r = self.cp(args[1]['value'], args[2]['value'])
 			else:
-				return False
+				return None
 		elif cmd == 'mv' and n_args == 3 and is_path[1] and is_path[2]:
 			r = self.mv(args[1]['value'], args[2]['value'])
 		elif cmd == 'cd' and n_args == 2 and is_path[1]:

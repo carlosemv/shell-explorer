@@ -15,10 +15,6 @@ class History(BoxLayout):
 		self.bind(minimum_height=self.setter('height'))
 		self.line_args = {'size_hint_y' : None, 'height' : line_height}
 
-		# test_text = 'mv -rf | & no .. && ./../../filw1 "dir/"'
-		# for i in range(10):
-		#	 self.add_line(test_text+str(i))
-
 	def add_line(self, text):
 		self.add_widget(ShellText(text=text, **self.line_args))
 
@@ -128,11 +124,13 @@ class TerminalScreen(BoxLayout):
 		short = path
 		path_split = split(path)
 		if path == self.shell.path:
-			short = '.'
-		elif path_split[0] == self.shell.path:
-			short = path_split[1]
+			short = '.' # self
+		elif path == split(self.shell.path)[0]:
+			short = '..' # parent
 		elif path_split[0] == split(self.shell.path)[0]:
-			short = join('..', path_split[1])
+			short = join('..', path_split[1]) # sibling
+		elif path_split[0] == self.shell.path:
+			short = path_split[1] # child
 		else:
 			common = commonpath((path, self.shell.path))
 			if common == self.shell.path:
@@ -174,3 +172,7 @@ class TerminalScreen(BoxLayout):
 
 		file_plane.dispatch('on_update')
 
+	def on_cd(self, file_plane, tgt):
+		path = self.shorten_path(tgt)
+		self.shell.cd(tgt)
+		self.enter_line('cd '+path)

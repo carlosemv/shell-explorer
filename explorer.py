@@ -145,11 +145,12 @@ class FilePlane(FloatLayout):
         self.menu_file = None
 
         self.copy_path = None
-        self.file_opts = ('copy', 'remove')
+        self.file_opts = ('copy', 'rename', 'remove')
         self.root_opts = ('paste', 'move', 'create file', 'create folder')
         self.register_event_type('on_remove')
         self.register_event_type('on_paste')
         self.register_event_type('on_move')
+        self.register_event_type('on_cd')
         self.register_event_type('on_update')
 
     def on_touch_down(self, touch):
@@ -225,6 +226,9 @@ class FilePlane(FloatLayout):
     def on_move(file_plane, src, tgt):
         pass
 
+    def on_cd(file_plane, tgt):
+        pass
+
     def on_update(self):
         pass
 
@@ -260,7 +264,7 @@ class Explorer(BoxLayout):
         tgt = tgt.name.text
         path = join(self.app.path, tgt)
         if isdir(path):
-            self.app.path = path
+            self.file_plane.dispatch('on_cd', path)
         else:
             self.update()
 
@@ -270,8 +274,7 @@ class Explorer(BoxLayout):
             path = join(path, btn.text)
             if btn == button:
                 break
-        self.app.path = path
-
+        self.file_plane.dispatch('on_cd', path)
 
     def update(self, app=None, new_path=None):
         if not new_path:

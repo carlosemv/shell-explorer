@@ -71,7 +71,7 @@ class TerminalScreen(BoxLayout):
         self.add_widget(scroll)
 
         self.input = CommandLine(line_height=self.line_height)
-        self.input.hint_text = "write here"
+        self.input.hint_text = "try commands here"
         self.input.bind(on_command=self.command)
         self.input.bind(on_command=self.shell.command)
         self.input.bind(on_history_nav=self.history_nav)

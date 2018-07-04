@@ -27,11 +27,16 @@ class ShellExplorer(App):
         self.explorer_screen = ExplorerScreen(app=self)
         self.terminal_screen = TerminalScreen(app=self, size_hint_x=0.5)
 
-        event_widget = self.explorer_screen.explorer.file_plane
-        event_widget.bind(on_remove=self.terminal_screen.on_remove)
-        event_widget.bind(on_paste=self.terminal_screen.on_paste)
-        event_widget.bind(on_move=self.terminal_screen.on_move)
-        
+        explorer = self.explorer_screen.explorer
+        plane = explorer.file_plane
+        terminal = self.terminal_screen
+
+        plane.bind(on_remove=terminal.on_remove)
+        plane.bind(on_paste=terminal.on_paste)
+        plane.bind(on_move=terminal.on_move)
+
+        terminal.shell.bind(on_update=explorer.update)
+
         root.add_widget(self.explorer_screen)
         root.add_widget(self.terminal_screen)
 

@@ -178,7 +178,8 @@ class FilePlane(FloatLayout):
         self.register_event_type('on_update')
 
     def adjust_height(self, plane, new_height):
-        if new_height < self.explorer.height*0.9:
+        if new_height < self.explorer.height*0.9 and \
+                len(self.stack.children) == 0:
             self.height = self.explorer.height*0.9
 
     def on_touch_down(self, touch):

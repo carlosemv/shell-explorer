@@ -8,6 +8,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.behaviors.drag import DragBehavior
 
+from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
 from kivy.uix.bubble import Bubble, BubbleButton
 from kivy.uix.label import Label
@@ -17,7 +18,7 @@ from shell import Shell
 from os.path import join, isdir
 
 class File(DragBehavior, BoxLayout):
-    def __init__(self, text="", is_dir=False, is_phantom=False, **kwargs):
+    def __init__(self, text="", is_input=False, is_dir=False, is_phantom=False, **kwargs):
         kwargs['orientation'] = 'vertical'
         if is_phantom:
             kwargs['opacity'] = 0.5
@@ -26,6 +27,7 @@ class File(DragBehavior, BoxLayout):
         self.size_hint = (None, None)
         self.size = (100, 100)
 
+        self.input = is_input
         self.is_dir = is_dir
         self.register_event_type('on_drop')
         self.register_event_type('on_enter')
@@ -37,8 +39,14 @@ class File(DragBehavior, BoxLayout):
 
         img_src = "dir.png" if self.is_dir else "file.png"
         self.image = Image(source="resources/"+img_src, mipmap=True)
-        self.name = Label(text=text, halign='center',
-            shorten=True, text_size=(self.width, None))
+
+        self.text_params = {'text':text, 'halign':'center', 'shorten':True,
+            'text_size':(self.width, None)}
+        if not self.input:
+            self.name = Label(**self.text_params)
+        else:
+            self.name = TextInput(on_text_validate=self.set_name,
+                multiline=False)
 
         self.add_widget(self.image)
         self.add_widget(self.name)
@@ -59,6 +67,16 @@ class File(DragBehavior, BoxLayout):
     def update_rect(self, *args):
         self.rect.pos = self.pos
         self.rect.size = self.size
+
+    def set_name(self, instance):
+        path = join(self.plane.app.path, 
+                instance.text)
+        instance.text = ""
+        if self.is_dir:
+            self.plane.dispatch('on_dir', path)
+        else:
+            self.plane.dispatch('on_file', path)
+
 
     # put down
     def on_touch_up(self, touch):
@@ -129,9 +147,10 @@ class File(DragBehavior, BoxLayout):
         pass
 
 class FilePlane(FloatLayout):
-    def __init__(self, app, **kwargs):
+    def __init__(self, app, explorer, **kwargs):
         super(FilePlane, self).__init__(**kwargs)
         self.app = app
+        self.explorer = explorer
 
         self.stack = StackLayout(padding=30, spacing=25)
         self.stack.size_hint_y = None
@@ -151,6 +170,9 @@ class FilePlane(FloatLayout):
         self.register_event_type('on_paste')
         self.register_event_type('on_move')
         self.register_event_type('on_cd')
+        self.register_event_type('on_file')
+        self.register_event_type('on_dir')
+
         self.register_event_type('on_update')
 
     def on_touch_down(self, touch):
@@ -216,6 +238,12 @@ class FilePlane(FloatLayout):
             elif button.text == 'move' and self.copy_path:
                 self.dispatch('on_move', self.copy_path, self.app.path)
                 self.copy_path = None
+            elif button.text in ('create file', 'create folder'):
+                is_dir = button.text == 'create folder'
+                f = File(is_input=True, is_dir=is_dir)
+                f.bind(on_drop=self.explorer.move)
+                f.bind(on_enter=self.explorer.enter)
+                self.stack.add_widget(f)
 
     def on_remove(file_plane, file):
         pass
@@ -229,6 +257,12 @@ class FilePlane(FloatLayout):
     def on_cd(file_plane, tgt):
         pass
 
+    def on_file(file_plane, path):
+        pass
+
+    def on_dir(file_plane, path):
+        pass
+
     def on_update(self):
         pass
 
@@ -240,7 +274,7 @@ class Explorer(BoxLayout):
         self.app = app
         self.app.bind(path=self.update)
 
-        self.file_plane = FilePlane(app)
+        self.file_plane = FilePlane(app, self)
         self.file_plane.bind(on_update=self.update)
         self.stack = self.file_plane.stack
 

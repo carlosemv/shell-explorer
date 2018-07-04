@@ -35,6 +35,8 @@ class ShellExplorer(App):
         plane.bind(on_paste=terminal.on_paste)
         plane.bind(on_move=terminal.on_move)
         plane.bind(on_cd=terminal.on_cd)
+        plane.bind(on_file=terminal.on_file)
+        plane.bind(on_dir=terminal.on_dir)
 
         terminal.shell.bind(on_update=explorer.update)
 

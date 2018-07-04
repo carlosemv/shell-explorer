@@ -18,7 +18,7 @@ class ShellLexer(RegexLexer):
 			(r'\s+', Token.Text.Whitespace),
 			(r'\'([^\'\\]|\\.)*\'', Token.Literal.String.Single),
 			(r'\"([^\"\\]|\\.)*\"', Token.Literal.String.Double),
-			(r'\b(ls|cd|mv|rm|cp|cat|grep|echo|pwd|touch|rmdir|mkdir)\b', Name.Builtin),
+			(r'\b(cd|mv|rm|cp|touch|rmdir|mkdir)\b', Name.Builtin),
 			(r'-[^\s]+', Name.Attribute),
 			(r'\.\.|\.|/', Token.Punctuation),
 			(r'\||&&', Token.Operator),

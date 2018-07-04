@@ -13,10 +13,6 @@ class History(BoxLayout):
 		self.bind(minimum_height=self.setter('height'))
 		self.line_args = {'size_hint_y' : None, 'height' : line_height}
 
-		test_text = 'mv -rf | & no .. && ./../../filw1 "dir/"'
-		for i in range(10):
-			self.add_line(test_text+str(i))
-
 	def add_line(self, text):
 		self.add_widget(ShellText(text=text, **self.line_args))
 

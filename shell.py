@@ -69,18 +69,27 @@ class Shell(EventDispatcher):
 					except NotADirectoryError:
 						self.path = prev_path
 				else:
-					self.run(args)
+					self.run(instance.text.split())
 			else:
-				self.run(args)
+				self.run(instance.text.split())
 		else:
-			self.run(args)
+			self.run(instance.text.split())
 	
 	def list_dir(path):
 		contents = os.listdir(path)
 		return {file : not isfile(join(path, file)) for file in contents}
 		
 	def run(self, args):
-		sp.run(args, cwd=self.path, timeout = 3)
+		try:
+			sp.run(args, cwd=self.path, timeout = 3)
+		except FileNotFoundError:
+			pass
+		except FileExistsError:
+			pass
+		except NotADirectoryError:
+			pass
+		except IsADirectoryError:
+			pass
 
 	def touch(self, name):
 		f = open(join(self.path, name),"w+")
@@ -136,5 +145,7 @@ class Shell(EventDispatcher):
 		try:
 			shutil.move(join(self.path,a), join(self.path,b))
 		except FileNotFoundError:
+			pass
+		except FileExistsError:
 			pass
 

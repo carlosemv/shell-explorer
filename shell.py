@@ -61,7 +61,15 @@ class Shell(EventDispatcher):
 						bad = True
 						break
 				if not bad:
-					self.path = normpath(join(self.path, arg))
+					prev_path = self.path
+					try:
+						self.path = normpath(join(self.path, arg))
+					except FileNotFoundError:
+						self.path = prev_path
+					except NotADirectoryError:
+						self.path = prev_path
+				else:
+					self.run(args)
 			else:
 				self.run(args)
 		else:

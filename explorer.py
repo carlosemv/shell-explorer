@@ -1,23 +1,28 @@
-from kivy.uix.button import Button
-from kivy.uix.behaviors.drag import DragBehavior
+from kivy.graphics import Color, Rectangle
+
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
+
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.behaviors.drag import DragBehavior
+
+from kivy.uix.button import Button
+from kivy.uix.bubble import Bubble, BubbleButton
 from kivy.uix.label import Label
 from kivy.uix.image import Image
-from kivy.graphics import Color, Rectangle
+
 from shell import Shell
 from os.path import join
 
-class FileDir(DragBehavior, BoxLayout):
+class File(DragBehavior, BoxLayout):
     def __init__(self, text="", is_dir=False, is_phantom=False, **kwargs):
         kwargs['orientation'] = 'vertical'
         if is_phantom:
             kwargs['opacity'] = 0.5
             text = "boo"
-        super(FileDir, self).__init__(**kwargs)
+        super(File, self).__init__(**kwargs)
         self.size_hint = (None, None)
         self.size = (100, 100)
 
@@ -65,13 +70,13 @@ class FileDir(DragBehavior, BoxLayout):
             # against doubled on_touch_up events
             if self.phantom and not touch.is_double_tap:
                 self.release(True, touch.pos)
-        return super(FileDir, self).on_touch_up(touch)
+        return super(File, self).on_touch_up(touch)
 
     # pick up
     def on_touch_down(self, touch):
         if not self.collide_point(*touch.pos) or \
                 not isinstance(self.parent, StackLayout):
-            return super(FileDir, self).on_touch_down(touch)
+            return super(File, self).on_touch_down(touch)
         
         if self.is_phantom:
             return True
@@ -89,18 +94,18 @@ class FileDir(DragBehavior, BoxLayout):
         # but not dragged, leaving it floating
         if len(self.plane.children) > 1:
             floaters = (w for w in self.plane.children if 
-                isinstance(w, FileDir))
+                isinstance(w, File))
             for f in floaters:
                 f.release()
 
         self.original_idx = self.stackp.children.index(self)
-        self.phantom = FileDir(is_phantom=True)
+        self.phantom = File(is_phantom=True)
 
         self.stackp.remove_widget(self)
         self.plane.add_widget(self)
         self.stackp.add_widget(self.phantom, index=self.original_idx)
 
-        return super(FileDir, self).on_touch_down(touch)
+        return super(File, self).on_touch_down(touch)
 
     def release(self, check_collision=False, touch_pos=None):
         self.stackp.remove_widget(self.phantom)
@@ -109,10 +114,9 @@ class FileDir(DragBehavior, BoxLayout):
         moved = False
         if check_collision:
             for child in self.stackp.children:
-                if child.collide_point(*touch_pos):
-                    if child.is_dir:
-                        self.dispatch('on_drop', child)
-                        moved = True
+                if child.collide_point(*touch_pos) and child.is_dir:
+                    self.dispatch('on_drop', child)
+                    moved = True
 
         self.plane.remove_widget(self)
         if not moved:
@@ -124,6 +128,77 @@ class FileDir(DragBehavior, BoxLayout):
     def on_enter(tgt):
         pass
 
+class FilePlane(FloatLayout):
+    def __init__(self, **kwargs):
+        super(FilePlane, self).__init__(**kwargs)
+
+        self.stack = StackLayout(padding=30, spacing=25)
+        self.stack.size_hint_y = None
+        self.stack.bind(minimum_height=self.stack.setter('height'))
+
+        self.size_hint_y = None
+        self.stack.bind(height=self.setter('height'))
+
+        self.add_widget(self.stack)
+        self.menu = None
+        self.menu_file = None
+
+        self.file_opts = ('copy', 'remove')
+        self.root_opts = ('paste', 'create file', 'create folder')
+
+    def on_touch_down(self, touch):
+        if self.menu:
+            on_menu = False
+            for btn in self.menu.content.children:
+                if btn.collide_point(*touch.pos):
+                    btn.dispatch('on_press')
+                    on_menu = True
+                    break
+
+            self.remove_widget(self.menu)
+            self.menu = None
+            self.menu_file = None
+            if on_menu:
+                return True
+
+        if touch.button != 'right':
+            return super(FilePlane, self).on_touch_down(touch)
+
+        self.menu = Bubble(orientation='vertical',
+            size_hint=(None, None), width=200,
+            limit_to=self, show_arrow=False)
+
+        opt_height = 30
+        btn_params = {'size_hint_y':None, 'height':opt_height,
+            'background_normal':'resources/bar.png',
+            'background_color':(0.5,0.5,0.5,0.8)}
+        
+        for file in self.stack.children:
+            if file.collide_point(*touch.pos):
+                self.menu_file = file
+                break
+
+        menu_options = self.file_opts if self.menu_file else self.root_opts
+
+        for option in menu_options:
+            btn = BubbleButton(text=option, **btn_params)
+            btn.bind(on_press=self.option)
+            self.menu.add_widget(btn)
+
+        self.menu.height = opt_height*len(self.menu.content.children)
+
+        self.menu.pos = (touch.x, touch.y-self.menu.height)
+        self.add_widget(self.menu)
+
+        return True
+
+    def option(self, button):
+        if self.menu_file:
+            print(button.text, self.menu_file.name.text)
+        else:
+            print(button.text)
+
+
 class Explorer(BoxLayout):
     def __init__(self, app, **kwargs):
         kwargs['orientation'] = 'vertical'
@@ -132,18 +207,11 @@ class Explorer(BoxLayout):
         self.app = app
         self.app.bind(path=self.update)
 
+        floating = FilePlane()
+        self.stack = floating.stack
+
         self.scroll = ScrollView(do_scroll_x=False, bar_width=8,
             bar_margin=2, scroll_type=['bars'])
-
-        self.stack = StackLayout(padding=30, spacing=25)
-        self.stack.size_hint_y = None
-        self.stack.bind(minimum_height=self.stack.setter('height'))
-
-        floating = FloatLayout()
-        floating.size_hint_y = None
-        self.stack.bind(height=floating.setter('height'))
-        floating.add_widget(self.stack)
-
         self.scroll.add_widget(floating)
 
         self.nav_bar = BoxLayout(orientation='horizontal',
@@ -188,7 +256,7 @@ class Explorer(BoxLayout):
         self.stack.clear_widgets()
         for file, is_dir in Shell.list_dir(new_path).items():
             if file[0] != '.':            
-                f = FileDir(text=file, is_dir=is_dir)
+                f = File(text=file, is_dir=is_dir)
                 f.bind(on_drop=self.move)
                 f.bind(on_enter=self.enter)
                 self.stack.add_widget(f)

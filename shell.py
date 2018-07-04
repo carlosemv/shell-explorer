@@ -1,19 +1,25 @@
+from kivy.event import EventDispatcher
+from kivy.properties import StringProperty
+
 import os
 import shutil
 import subprocess as sp
-from os.path import isfile, join, abspath
+from os.path import isfile, join, normpath
 from shell_code import ShellLexer, split_list
 from pygments.token import Token, Name
 
-path = "/home/victoragnez/"
+class Shell(EventDispatcher):
 
-class Shell():
+	path = StringProperty("")
 	
-	def __init__(self):
-		pass	
+	def __init__(self, app, **kwargs):
+		super(Shell, self).__init__(**kwargs)
 
-	def command(instance):
-		global path
+		self.bind(path=app.setter('path'))
+		app.bind(path=self.setter('path'))
+		self.path = app.path
+
+	def command(self, instance):
 		lexer = ShellLexer()
 		lexed = [{'token':t, 'value':v} for t,v in lexer.get_tokens(instance.text)]
 		sublists = [seq for seq in split_list(lexed, Token.Text.Whitespace, lambda l : l['token']) if seq]
@@ -22,90 +28,91 @@ class Shell():
 			return
 		args = [tok['value'] for sublist in sublists for tok in sublist]
 		if sublists[0][0]['token'] == Name.Builtin:
-			if args[0] == 'touch' and len(args) == 2:
-				Shell.touch(args[1])
-			elif args[0] == 'rm' and len(args) == 2:
-				Shell.rm(args[1])
-			elif (args[0] == 'rm' and len(args) == 3 and args[1] == '-d') or (args[0] == 'rmdir' and len(args) == 2):
-				Shell.rmdir(args[-1])
-			elif args[0] == 'rm' and len(args) == 3 and args[1] == '-r':
-				Shell.rmtree(args[2])
-			elif args[0] == 'mkdir' and len(args) == 2:
-				Shell.mkdir(args[1])
-			elif args[0] == 'cp' and len(args) == 3:
-				Shell.cp(args[1], args[2])
-			elif args[0] == 'cp' and len(args) == 4 and args[1] == '-r':
-				Shell.cptree(args[2], args[3])
-			elif args[0] == 'mv' and len(args) == 3:
-				Shell.mv(args[1], args[2])
-			elif args[0] == 'cd' and len(args) == 2:
-				path = abspath(join(path, args[1]))
-				print(path)
+			cmd, n_args = args[0], len(args)
+			if cmd == 'touch' and n_args == 2:
+				self.touch(args[1])
+			elif cmd == 'rm' and n_args == 2:
+				self.rm(args[1])
+			elif (cmd == 'rm' and n_args == 3 and args[1] == '-d') or \
+					(cmd == 'rmdir' and n_args == 2):
+				self.rmdir(args[-1])
+			elif cmd == 'rm' and n_args == 3 and args[1] == '-r':
+				self.rmtree(args[2])
+			elif cmd == 'mkdir' and n_args == 2:
+				self.mkdir(args[1])
+			elif cmd == 'cp' and n_args == 3:
+				self.cp(args[1], args[2])
+			elif cmd == 'cp' and n_args == 4 and args[1] == '-r':
+				self.cptree(args[2], args[3])
+			elif cmd == 'mv' and n_args == 3:
+				self.mv(args[1], args[2])
+			elif cmd == 'cd' and n_args == 2:
+				self.path = normpath(join(self.path, args[1]))
 			else:
-				Shell.run(args)
+				self.run(args)
 		else:
-			Shell.run(args)
+			self.run(args)
 	
 	def list_dir(path):
 		contents = os.listdir(path)
 		return {file : not isfile(join(path, file)) for file in contents}
 		
-	def run(args):
-		sp.run(args, cwd=path, timeout = 3)
+	def run(self, args):
+		sp.run(args, cwd=self.path, timeout = 3)
 
-	def touch(name):
-		f = open(join(path, name),"w+")
+	def touch(self, name):
+		f = open(join(self.path, name),"w+")
 		f.close()
 
-	def rm(name):
+	def rm(self, name):
 		try:
-			os.remove(join(path,name))
+			os.remove(join(self.path,name))
 		except FileNotFoundError:
 			pass
 		except IsADirectoryError:
 			pass
 
-	def rmdir(name):
+	def rmdir(self, name):
 		try:
-			os.rmdir(join(path,name))
+			os.rmdir(join(self.path,name))
 		except FileNotFoundError:
 			pass
 		except OSError:
 			pass
 
-	def rmtree(name):
+	def rmtree(self, name):
 		try:
-			shutil.rmtree(join(path,name))
+			shutil.rmtree(join(self.path,name))
 		except FileNotFoundError:
 			pass
 		except NotADirectoryError:
 			pass
 	
-	def mkdir(name):
+	def mkdir(self, name):
 		try:
-			os.mkdir(join(path,name))
+			os.mkdir(join(self.path,name))
 		except FileExistsError:
 			pass
 			
-	def cp(a, b):
+	def cp(self, a, b):
 		try:
-			shutil.copy2(join(path,a), join(path,b))
+			shutil.copy2(join(self.path,a), join(self.path,b))
 		except FileNotFoundError:
 			pass
 		except IsADirectoryError:
 			pass
 	
-	def cptree(a, b):
+	def cptree(self, a, b):
 		try:
-			shutil.copytree(join(path,a), join(path,b))
+			shutil.copytree(join(self.path,a), join(self.path,b))
 		except FileNotFoundError:
 			pass
 		except NotADirectoryError:
 			pass
 	
-	def mv(a, b):
+	def mv(self, a, b):
 		try:
-			shutil.move(join(path,a), join(path,b))
+			shutil.move(join(self.path,a), join(self.path,b))
 		except FileNotFoundError:
 			pass
 

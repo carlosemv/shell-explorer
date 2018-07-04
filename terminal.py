@@ -55,7 +55,7 @@ class TerminalScreen(BoxLayout):
 		kwargs['orientation'] = 'vertical'
 		super(TerminalScreen, self).__init__(**kwargs)
 
-		self.app = app
+		self.shell = Shell(app)
 		
 		self.line_height = 35
 		self.history = History(line_height=self.line_height)
@@ -73,7 +73,7 @@ class TerminalScreen(BoxLayout):
 		self.input = CommandLine(line_height=self.line_height)
 		self.input.hint_text = "write here"
 		self.input.bind(on_command=self.command)
-		self.input.bind(on_command=Shell.command)
+		self.input.bind(on_command=self.shell.command)
 		self.input.bind(on_history_nav=self.history_nav)
 		self.add_widget(self.input)
 		self.input.focus = True

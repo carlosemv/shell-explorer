@@ -39,6 +39,8 @@ class Shell(EventDispatcher):
 		succeed = False
 		if args[0]['token'] == Name.Builtin:
 			succeed = self.builtin(args)
+			if not succeed:
+				succeed = self.run(instance.text.split())
 		else:
 			succeed = self.run(instance.text.split())
 		

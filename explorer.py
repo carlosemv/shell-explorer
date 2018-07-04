@@ -152,6 +152,8 @@ class FilePlane(FloatLayout):
         self.app = app
         self.explorer = explorer
 
+        self.bind(height=self.adjust_height)
+
         self.stack = StackLayout(padding=30, spacing=25)
         self.stack.size_hint_y = None
         self.stack.bind(minimum_height=self.stack.setter('height'))
@@ -175,6 +177,10 @@ class FilePlane(FloatLayout):
 
         self.register_event_type('on_update')
 
+    def adjust_height(self, plane, new_height):
+        if new_height < self.explorer.height*0.9:
+            self.height = self.explorer.height*0.9
+
     def on_touch_down(self, touch):
         if self.menu:
             on_menu = False
@@ -195,7 +201,7 @@ class FilePlane(FloatLayout):
 
         self.menu = Bubble(orientation='vertical',
             size_hint=(None, None), width=200,
-            limit_to=self, show_arrow=False)
+            limit_to=self.explorer, show_arrow=False)
 
         opt_height = 30
         btn_params = {'size_hint_y':None, 'height':opt_height,

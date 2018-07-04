@@ -153,6 +153,15 @@ class Shell(EventDispatcher):
 			pass
 		except FileExistsError:
 			pass
+	
+	def cd(self, arg):
+		prev_path = self.path
+		try:
+			self.path = normpath(join(self.path, arg))
+		except FileNotFoundError:
+			self.path = prev_path
+		except NotADirectoryError:
+			self.path = prev_path
 
 	def cd(self, new_path):
 		prev_path = self.path

@@ -14,7 +14,7 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 
 from shell import Shell
-from os.path import join, split
+from os.path import join, split, isdir
 
 class File(DragBehavior, BoxLayout):
     def __init__(self, text="", is_dir=False, is_phantom=False, **kwargs):
@@ -258,7 +258,11 @@ class Explorer(BoxLayout):
 
     def enter(self, tgt):
         tgt = tgt.name.text
-        self.app.path = join(self.app.path, tgt)
+        path = join(self.app.path, tgt)
+        if isdir(path):
+            self.app.path = path
+        else:
+            self.update()
 
     def navigate(self, button):
         path = ""

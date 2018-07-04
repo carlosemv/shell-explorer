@@ -32,10 +32,10 @@ class Shell(EventDispatcher):
 			if token == Token.Punctuation:
 				token = Token.Text
 			args.append({'token':token, 'value':value})
-		print(args)
 
 		if args[0]['token'] == Name.Builtin:
-			self.builtin(args)
+			if not self.builtin(args):
+				self.run(instance.text.split())
 		else:
 			self.run(instance.text.split())
 
@@ -46,7 +46,13 @@ class Shell(EventDispatcher):
 
 		is_path = [False for i in range(max(n_args, 4))]
 		for i, arg in enumerate(args):
+			if arg['token'] in (Token.Literal.String.Single,
+					Token.Literal.String.Double):
+				arg['value'] = arg['value'].strip('\"\'')
+				arg['token'] = Token.Text
+
 			if arg['token'] == Token.Text:
+				arg['value'] = arg['value'].replace("\\ ", " ")
 				arg['value'] = normpath(join(self.path, arg['value']))
 				is_path[i] = True
 
@@ -60,6 +66,8 @@ class Shell(EventDispatcher):
 					self.rmtree(args[2]['value'])
 			elif n_args == 2 and is_path[1]:
 				self.rm(args[1]['value'])
+			else:
+				return False
 		elif cmd == 'rmdir' and n_args == 2 and is_path[1]:
 			self.rmdir(args[1]['value'])
 		elif cmd == 'mkdir' and n_args == 2 and is_path[1]:
@@ -70,12 +78,15 @@ class Shell(EventDispatcher):
 				self.cptree(args[2]['value'], args[3]['value'])
 			elif n_args == 3 and is_path[1] and is_path[2]:
 				self.cp(args[1]['value'], args[2]['value'])
+			else:
+				return False
 		elif cmd == 'mv' and n_args == 3 and is_path[1] and is_path[2]:
 			self.mv(args[1]['value'], args[2]['value'])
 		elif cmd == 'cd' and n_args == 2 and is_path[1]:
 			self.cd(args[1]['value'])
 		else:
-			self.run(instance.text.split())
+			return False
+		return True
 
 	def list_dir(path):
 		contents = os.listdir(path)
@@ -153,15 +164,6 @@ class Shell(EventDispatcher):
 			pass
 		except FileExistsError:
 			pass
-	
-	def cd(self, arg):
-		prev_path = self.path
-		try:
-			self.path = normpath(join(self.path, arg))
-		except FileNotFoundError:
-			self.path = prev_path
-		except NotADirectoryError:
-			self.path = prev_path
 
 	def cd(self, new_path):
 		prev_path = self.path

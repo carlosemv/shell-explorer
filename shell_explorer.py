@@ -26,10 +26,19 @@ class ShellExplorer(App):
         root = BoxLayout(orientation='horizontal')
         self.explorer_screen = ExplorerScreen(app=self)
         self.terminal_screen = TerminalScreen(app=self, size_hint_x=0.5)
+
+        explorer = self.explorer_screen.explorer
+        plane = explorer.file_plane
+        terminal = self.terminal_screen
+
+        plane.bind(on_remove=terminal.on_remove)
+        plane.bind(on_paste=terminal.on_paste)
+        plane.bind(on_move=terminal.on_move)
+
+        terminal.shell.bind(on_update=explorer.update)
+
         root.add_widget(self.explorer_screen)
         root.add_widget(self.terminal_screen)
-
-        # self.bind(path=self.explorer_screen.explorer.update)
 
         return root
 

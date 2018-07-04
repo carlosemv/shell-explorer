@@ -18,6 +18,7 @@ class Shell(EventDispatcher):
 		self.bind(path=app.setter('path'))
 		app.bind(path=self.setter('path'))
 		self.path = app.path
+		self.register_event_type('on_update')
 
 	def command(self, instance):
 		lexer = ShellLexer()
@@ -90,6 +91,9 @@ class Shell(EventDispatcher):
 			pass
 		except IsADirectoryError:
 			pass
+
+	def on_update(shell):
+		pass
 
 	def touch(self, name):
 		f = open(join(self.path, name),"w+")

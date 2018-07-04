@@ -14,7 +14,7 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 
 from shell import Shell
-from os.path import join
+from os.path import join, split
 
 class File(DragBehavior, BoxLayout):
     def __init__(self, text="", is_dir=False, is_phantom=False, **kwargs):
@@ -129,8 +129,9 @@ class File(DragBehavior, BoxLayout):
         pass
 
 class FilePlane(FloatLayout):
-    def __init__(self, **kwargs):
+    def __init__(self, app, **kwargs):
         super(FilePlane, self).__init__(**kwargs)
+        self.app = app
 
         self.stack = StackLayout(padding=30, spacing=25)
         self.stack.size_hint_y = None
@@ -143,8 +144,13 @@ class FilePlane(FloatLayout):
         self.menu = None
         self.menu_file = None
 
+        self.copy_path = None
         self.file_opts = ('copy', 'remove')
-        self.root_opts = ('paste', 'create file', 'create folder')
+        self.root_opts = ('paste', 'move', 'create file', 'create folder')
+        self.register_event_type('on_remove')
+        self.register_event_type('on_paste')
+        self.register_event_type('on_move')
+        self.register_event_type('on_update')
 
     def on_touch_down(self, touch):
         if self.menu:
@@ -194,10 +200,33 @@ class FilePlane(FloatLayout):
 
     def option(self, button):
         if self.menu_file:
-            print(button.text, self.menu_file.name.text)
+            if button.text == 'copy':
+                self.copy_path = join(self.app.path, 
+                    self.menu_file.name.text)
+                print("copy", self.copy_path)
+            elif button.text == 'remove':
+                rm_file = self.menu_file.name.text
+                if self.copy_path and split(self.copy_path) == rm_file:
+                    self.copy_path = None
+                self.dispatch('on_remove', rm_file)
         else:
-            print(button.text)
+            if button.text == 'paste' and self.copy_path:
+                self.dispatch('on_paste', self.copy_path, self.app.path)
+            elif button.text == 'move' and self.copy_path:
+                self.dispatch('on_move', self.copy_path, self.app.path)
+                self.copy_path = None
 
+    def on_remove(file_plane, file):
+        pass
+
+    def on_paste(file_plane, src, tgt):
+        pass
+
+    def on_move(file_plane, src, tgt):
+        pass
+
+    def on_update(self):
+        pass
 
 class Explorer(BoxLayout):
     def __init__(self, app, **kwargs):
@@ -207,12 +236,13 @@ class Explorer(BoxLayout):
         self.app = app
         self.app.bind(path=self.update)
 
-        floating = FilePlane()
-        self.stack = floating.stack
+        self.file_plane = FilePlane(app)
+        self.file_plane.bind(on_update=self.update)
+        self.stack = self.file_plane.stack
 
         self.scroll = ScrollView(do_scroll_x=False, bar_width=8,
             bar_margin=2, scroll_type=['bars'])
-        self.scroll.add_widget(floating)
+        self.scroll.add_widget(self.file_plane)
 
         self.nav_bar = BoxLayout(orientation='horizontal',
             size_hint_y=0.05)
@@ -222,12 +252,9 @@ class Explorer(BoxLayout):
         self.update()
 
     def move(self, src, dst):
-        with dst.canvas:
-            dst.rect_color = Color(0, 0, 0, 1)
-
-        src, dst = src.name.text, dst.name.text
-        print("move", src, "to", dst)
-        self.update()
+        src = join(self.app.path, src.name.text)
+        dst = join(self.app.path, dst.name.text)
+        self.file_plane.dispatch('on_move', src, dst)
 
     def enter(self, tgt):
         tgt = tgt.name.text

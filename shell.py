@@ -39,7 +39,7 @@ class Shell(EventDispatcher):
 		succeed = False
 		if args[0]['token'] == Name.Builtin:
 			succeed = self.builtin(args)
-			if not succeed:
+			if succeed == None:
 				succeed = self.run(instance.text.split())
 		else:
 			succeed = self.run(instance.text.split())
@@ -91,7 +91,7 @@ class Shell(EventDispatcher):
 		elif cmd == 'cd' and n_args == 2 and is_path[1]:
 			r = self.cd(args[1]['value'])
 		else:
-			return False
+			return None
 		return r
 
 	def list_dir(path):
@@ -101,10 +101,9 @@ class Shell(EventDispatcher):
 	def run(self, args):
 		try:
 			sp.run(args, cwd=self.path, timeout=3)
-		except OSError as e:
-			print("Shell.run:", e)
-			return False
-		except sp.TimeoutExpired as e:
+		except (OSError, 
+				sp.TimeoutExpired, 
+				sp.CalledProcessError) as e:
 			print("Shell.run:", e)
 			return False
 		else:

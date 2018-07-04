@@ -14,7 +14,7 @@ from kivy.uix.label import Label
 from kivy.uix.image import Image
 
 from shell import Shell
-from os.path import join, split, isdir
+from os.path import join, isdir
 
 class File(DragBehavior, BoxLayout):
     def __init__(self, text="", is_dir=False, is_phantom=False, **kwargs):
@@ -200,15 +200,15 @@ class FilePlane(FloatLayout):
 
     def option(self, button):
         if self.menu_file:
+            file_path = join(self.app.path, 
+                self.menu_file.name.text)
             if button.text == 'copy':
-                self.copy_path = join(self.app.path, 
-                    self.menu_file.name.text)
+                self.copy_path = file_path
                 print("copy", self.copy_path)
             elif button.text == 'remove':
-                rm_file = self.menu_file.name.text
-                if self.copy_path and split(self.copy_path) == rm_file:
+                if self.copy_path and self.copy_path == file_path:
                     self.copy_path = None
-                self.dispatch('on_remove', rm_file)
+                self.dispatch('on_remove', file_path)
         else:
             if button.text == 'paste' and self.copy_path:
                 self.dispatch('on_paste', self.copy_path, self.app.path)

@@ -4,6 +4,8 @@ from kivy.effects.kinetic import KineticEffect
 from shell_code import ShellText, ShellInput
 from shell import Shell
 
+from os.path import join, isdir, isfile, split, commonpath
+
 class History(BoxLayout):
 	def __init__(self, line_height, **kwargs):
 		kwargs['orientation'] = 'vertical'
@@ -73,16 +75,20 @@ class TerminalScreen(BoxLayout):
 		self.input = CommandLine(line_height=self.line_height)
 		self.input.hint_text = "try commands here"
 		self.input.bind(on_command=self.command)
-		self.input.bind(on_command=self.shell.command)
 		self.input.bind(on_history_nav=self.history_nav)
 		self.add_widget(self.input)
 		self.input.focus = True
 
 	def command(self, instance):
 		if instance.text:
-			self.history.add_line(instance.text)
-			self.history_pointer = -1
-			instance.text = ""
+			success = self.shell.command(instance)
+			self.enter_line(instance.text)
+
+	def enter_line(self, text, add=True):
+		if add:
+			self.history.add_line(text)
+		self.history_pointer = -1
+		self.input.text = ""
 
 	def history_nav(self, instance, up):
 		if up:
@@ -100,14 +106,71 @@ class TerminalScreen(BoxLayout):
 				self.history_pointer -= 1
 				instance.text = self.latest_input
 
-	def on_remove(self, file_plane, file):
-		print("remove", file)
+	def on_remove(self, file_plane, path):
+		file = split(path)[1]
+		command = ""
+		if isfile(path):
+			command = "rm " + file
+			self.shell.rm(path)
+		elif isdir(path):
+			if Shell.list_dir(path):
+				command = "rm -r " + file
+				self.shell.rmtree(path)
+			else:
+				command = "rmdir " + file
+				self.shell.rmdir(path)
+
+		if command:
+			self.enter_line(command)
 		file_plane.dispatch('on_update')
 
+	def shorten_path(self, path):
+		short = path
+		path_split = split(path)
+		if path == self.shell.path:
+			short = '.'
+		elif path_split[0] == self.shell.path:
+			short = path_split[1]
+		elif path_split[0] == split(self.shell.path)[0]:
+			short = join('..', path_split[1])
+		else:
+			common = commonpath((path, self.shell.path))
+			if common == self.shell.path:
+				short = path[len(common):].lstrip('/')
+		return short
+
 	def on_paste(self, file_plane, src, tgt):
-		print("paste", src, "in", tgt)
+		if (isfile(src) or isdir(src)) and \
+				(isfile(tgt) or isdir(tgt)):
+
+			src_file = self.shorten_path(src)
+			tgt_file = self.shorten_path(tgt)
+
+			if isdir(src):
+				prefix = "cp -r"
+				shell_func = self.shell.cptree
+				tgt = join(tgt, src_split[1])
+			else:
+				prefix = "cp"
+				shell_func = self.shell.cp
+			shell_func(src, tgt)
+
+			command = prefix+" {} {}".format(src_file,tgt_file)
+			self.enter_line(command)
+
 		file_plane.dispatch('on_update')
 
 	def on_move(self, file_plane, src, tgt):
 		print("move", src, "to", tgt)
+		if (isfile(src) or isdir(src)) and \
+				(isfile(tgt) or isdir(tgt)):
+
+			src_file = self.shorten_path(src)
+			tgt_file = self.shorten_path(tgt)
+
+			self.shell.mv(src, tgt)
+			command = "mv {} {}".format(src_file,tgt_file)
+			self.enter_line(command)
+
 		file_plane.dispatch('on_update')
+

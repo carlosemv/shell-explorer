@@ -104,6 +104,9 @@ class Shell(EventDispatcher):
 		except OSError as e:
 			print("Shell.run:", e)
 			return False
+		except sp.TimeoutExpired as e:
+			print("Shell.run:", e)
+			return False
 		else:
 			return True
 

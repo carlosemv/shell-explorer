@@ -254,7 +254,8 @@ class Explorer(BoxLayout):
                 self.nav_bar.add_widget(btn)
 
         self.stack.clear_widgets()
-        for file, is_dir in Shell.list_dir(new_path).items():
+		[content for content in Shell.list_dir(new_path).items()].sort()
+        for file, is_dir in files:
             if file[0] != '.':            
                 f = File(text=file, is_dir=is_dir)
                 f.bind(on_drop=self.move)

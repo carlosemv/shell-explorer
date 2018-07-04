@@ -46,8 +46,22 @@ class Shell(EventDispatcher):
 				self.cptree(args[2], args[3])
 			elif cmd == 'mv' and n_args == 3:
 				self.mv(args[1], args[2])
-			elif cmd == 'cd' and n_args == 2:
-				self.path = normpath(join(self.path, args[1]))
+			elif cmd == 'cd' and n_args > 1:
+				prev_pont = True
+				arg = ""
+				bad = False
+				for tok in [tmp for sublist in sublists for tmp in sublist][1:]:
+					if tok['token'] == Token.Punctuation:
+						arg = arg + tok['value']
+						prev_pont = True
+					elif prev_pont:
+						arg = arg + tok['value']
+						prev_pont = False
+					else:
+						bad = True
+						break
+				if not bad:
+					self.path = normpath(join(self.path, arg))
 			else:
 				self.run(args)
 		else:

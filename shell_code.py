@@ -22,7 +22,7 @@ class ShellLexer(RegexLexer):
 			(r'-[^\s]+', Name.Attribute),
 			(r'\.\.|\.|/', Token.Punctuation),
 			(r'\||&&', Token.Operator),
-			(r'\w+', Token.Text)
+			(r'(\w|\\ )+', Token.Text)
 		]
 	}
 
@@ -52,9 +52,13 @@ def split_list(src, sep, key=lambda x:x):
 	yield group
 
 # shell_lexer = ShellLexer()
-# test_str = 'mv -rf | & adnsak else && . .. ./dir/../filw \'\\\'\' "aa ..\\ \"a" '
+# test_str = 'cd -d m nt/b\ b1'
+# print(test_str)
 
 # lexed = [{'token':t, 'value':v} for t,v in shell_lexer.get_tokens(test_str)]
+# sublists = [seq for seq in split_list(lexed, Token.Text.Whitespace, lambda l : l['token']) if seq]
+# for lex in sublists:
+# 	print(lex)
 # for seq in split_list(lexed, Token.Text.Whitespace, lambda l : l['token']):
 # 	print(''.join(lex['value'] for lex in seq), end=' ')
 # 	if not seq:

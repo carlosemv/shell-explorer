@@ -5,6 +5,7 @@ from kivy.app import App
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty
+from kivy.config import Config
 from os.path import expanduser
 
 from terminal import TerminalScreen
@@ -51,4 +52,6 @@ class ShellExplorer(App):
 
 
 if __name__ == '__main__':
+    Config.set('postproc', 'double_tap_time', 350)
+    Config.write()
     ShellExplorer().run()

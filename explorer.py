@@ -21,7 +21,7 @@ class File(DragBehavior, BoxLayout):
     def __init__(self, text="", is_input=False, is_dir=False, is_phantom=False, **kwargs):
         kwargs['orientation'] = 'vertical'
         if is_phantom:
-            kwargs['opacity'] = 0.5
+            kwargs['opacity'] = 0
             text = "boo"
         super(File, self).__init__(**kwargs)
         self.size_hint = (None, None)

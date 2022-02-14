@@ -6,4 +6,6 @@ That is, it's essentially a combined unix shell + file explorer. Its intended us
 
 As shown above, each command made either through the GUI or the CLI is simultaneously mirrored (or translated) to the other interface.
 
-Built in Python (>= 3.7) with [Kivy](https://github.com/kivy/kivy)
+Built in Python (>= 3.7) with [Kivy](https://github.com/kivy/kivy).
+
+Run with `python shell_explorer.py`.

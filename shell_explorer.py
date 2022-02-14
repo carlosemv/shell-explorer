@@ -53,5 +53,6 @@ class ShellExplorer(App):
 
 if __name__ == '__main__':
     Config.set('postproc', 'double_tap_time', 350)
+    Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
     Config.write()
     ShellExplorer().run()

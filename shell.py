@@ -4,7 +4,7 @@ from kivy.properties import StringProperty
 import os
 import shutil
 import subprocess as sp
-from os.path import isfile, join, normpath
+from os.path import isfile, join, normpath, expanduser
 from shell_code import ShellLexer, split_list
 from pygments.token import Token, Name
 
@@ -59,7 +59,10 @@ class Shell(EventDispatcher):
 
 			if arg['token'] == Token.Text:
 				arg['value'] = arg['value'].replace("\\ ", " ")
-				arg['value'] = normpath(join(self.path, arg['value']))
+				print(expanduser(arg['value']))
+				arg['value'] = normpath(join(self.path,
+					expanduser(arg['value'])))
+				print(arg['value'])
 				is_path[i] = True
 
 		if cmd == 'touch' and n_args == 2 and is_path[1]:

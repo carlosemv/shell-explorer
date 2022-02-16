@@ -20,7 +20,7 @@ class ShellLexer(RegexLexer):
 			(r'\"([^\"\\]|\\.)*\"', Token.Literal.String.Double),
 			(r'\b(cd|mv|rm|cp|touch|rmdir|mkdir)\b', Name.Builtin),
 			(r'-[^\s]+', Name.Attribute),
-			(r'\.\.|\.|/', Token.Punctuation),
+			(r'~|\.\.|\.|/', Token.Punctuation),
 			(r'\||&&', Token.Operator),
 			(r'(\w|\\ )+', Token.Text)
 		]
